@@ -1,3 +1,5 @@
+require "uri"
+
 module TwilioTestToolkit
   # Models a scope within a call.
   class CallScope
@@ -191,11 +193,19 @@ module TwilioTestToolkit
     end
 
     def normalize_redirect_path(path)
-      p = path
+      p = path # http://example.com?ruby=is_too&rails=is_cool
 
       # Strip off ".xml" off of the end of any path
       p = path[0...path.length - ".xml".length] if path.downcase.match(/\.xml$/)
-      p
+
+      # Sort keys in query params
+      base_path = p.gsub(/\?.+/, "") # http://example.com
+      uri = URI(p)
+      query = uri.query.to_s # "ruby=is_too&rails=is_cool"
+      query_hash = Rack::Utils.parse_nested_query(query) # { ruby: [is_too], rails: [is_cool] }
+      sorted_query = query_hash.to_param # rails=is_cool&ruby=is_too (#to_param sorts these)
+
+      "#{base_path}?#{sorted_query}" # http://example.com?rails=is_cool&ruby=is_too
     end
 
     def extra_options(options = {})
